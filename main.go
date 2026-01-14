@@ -21,6 +21,7 @@ func main(){
 
 	serveMux.Handle("/", http.FileServer(http.Dir(".")))
 	
+	
 	// ListenAndServe() blocks the main function until the server shuts down
 	s.ListenAndServe()
 }
