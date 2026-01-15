@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync/atomic"
 )
 
@@ -52,12 +53,13 @@ func (cfg *apiConfig) handlerHealthz(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	}
+
 	
+type parameters struct {
+	Body string `json:"body"`
+}
+
 func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
-	type parameters struct {
-		Body string `json:"body"`
-	}
-	
 	var params parameters
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		log.Printf("ERROR decoding requests: %v", err)
@@ -73,10 +75,22 @@ func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	responseBody := map[string]bool{"valid":true}
+	outputBody := badWordReplacement(params)
+	responseBody := map[string]string{"cleaned_body":outputBody}
 	data, _ := json.Marshal(responseBody)
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
 
 
+func badWordReplacement(p parameters) string {
+	split := strings.Fields(p.Body)
+	for i, word := range split {
+		word = strings.ToLower(word)
+		if word == "kerfuffle" || word == "sharbert" || word == "fornax" {
+			split[i] = "****"
+		}
+	}
+
+	return strings.Join(split, " ")
 }
