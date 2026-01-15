@@ -6,21 +6,33 @@ import (
 )
 
 
-func main(){
-	// serveMux is a HTTP request router
-	serveMux := http.NewServeMux()
 
-	// http.Server is a struct that defines a server configuration
+
+func main(){
+	mux := http.NewServeMux()
+	apiCfg := &apiConfig{}
+
+	fileServerHandler := http.FileServer(http.Dir("."))
+
 	s := &http.Server{
 		Addr:           ":8080",
-		Handler:        serveMux,
+		Handler:        mux,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	serveMux.Handle("/", http.FileServer(http.Dir(".")))
-	
+	wrappedHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", fileServerHandler))
+
+	mux.Handle("/app/", wrappedHandler)
+
+	mux.Handle("/app/assets/", wrappedHandler)
+
+	mux.HandleFunc("/healthz", apiCfg.handlerHealthz)
+
+	mux.HandleFunc("/metrics", apiCfg.handlerMetrics)
+
+	mux.HandleFunc("/reset", apiCfg.handlerReset)
 	
 	// ListenAndServe() blocks the main function until the server shuts down
 	s.ListenAndServe()
