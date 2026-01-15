@@ -17,6 +17,7 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	db *database.Queries
+	platform string
 }
 
 
@@ -33,6 +34,7 @@ func main(){
 	mux := http.NewServeMux()
 	apiCfg := &apiConfig{
 		db: dbQueries,
+		platform: os.Getenv("PLATFORM"),
 	}
 
 	fileServerHandler := http.FileServer(http.Dir("."))
@@ -58,6 +60,8 @@ func main(){
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
 	mux.HandleFunc("POST /api/validate_chirp", apiCfg.handlerValidateChirp)
+
+	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	
 	// ListenAndServe() blocks the main function until the server shuts down
 	s.ListenAndServe()

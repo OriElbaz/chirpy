@@ -14,3 +14,17 @@ content-type: application/json
 {
     "body": "HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!"
 }
+
+###
+
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+    "email": "orielbaz1@gmail.com"
+}
+
+###
+
+POST http://localhost:8080/admin/reset
+Content-Type: application/json

@@ -6,9 +6,22 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/google/uuid"
 )
 
+type parameters struct {
+	Body string `json:"body"`
+}
 
+
+type User struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
 
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -21,9 +34,16 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	cfg.fileserverHits.Store(0)
-	w.Write([]byte("File server hits reset to 0"))
+	
+	if cfg.platform != "dev" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	
+	if err := cfg.db.ResetUsers(r.Context()); err != nil {
+		log.Printf("ERROR resetting user table: %v", err)
+	}
+	w.Write([]byte("User table reset"))
 
 }
 
@@ -50,10 +70,6 @@ func (cfg *apiConfig) handlerHealthz(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	}
 
-	
-type parameters struct {
-	Body string `json:"body"`
-}
 
 func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 	var params parameters
@@ -79,6 +95,43 @@ func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Reques
 }
 
 
+func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
+	type request struct {
+		Email string `json:"email"`
+	}
+
+	var req request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("ERROR decoding request: %v" , err)
+		return
+	}
+	
+	user, err := cfg.db.CreateUser(r.Context(), req.Email)
+	if err != nil {
+		log.Printf("ERROR creating user in db: %v", err)
+		return
+	}
+	
+	output := User{
+		ID: user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email: user.Email,
+	}
+
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	data, err := json.Marshal(output)
+	if err != nil {
+		log.Printf("ERROR marshalling output: %v", err)
+		return
+	}
+	w.Write(data)
+}
+
+/***** HELPER *****/
 func badWordReplacement(p parameters) string {
 	split := strings.Fields(p.Body)
 	for i, word := range split {
