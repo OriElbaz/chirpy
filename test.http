@@ -1,0 +1,16 @@
+
+POST http://localhost:8080/api/validate_chirp
+content-type: application/json
+// handlerValidateChirp - PASS
+{
+    "body": "HELLO MY FRIEND!"
+}
+
+###
+
+POST http://localhost:8080/api/validate_chirp
+content-type: application/json
+// handlerValidateChirp - FAIL
+{
+    "body": "HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!HELLO MY FRIEND!"
+}
