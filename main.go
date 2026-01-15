@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -9,6 +10,7 @@ import (
 
 
 func main(){
+	fmt.Println("Server started!")
 	mux := http.NewServeMux()
 	apiCfg := &apiConfig{}
 
@@ -28,11 +30,11 @@ func main(){
 
 	mux.Handle("/app/assets/", wrappedHandler)
 
-	mux.HandleFunc("/healthz", apiCfg.handlerHealthz)
+	mux.HandleFunc("GET /healthz", apiCfg.handlerHealthz)
 
-	mux.HandleFunc("/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("GET /metrics", apiCfg.handlerMetrics)
 
-	mux.HandleFunc("/reset", apiCfg.handlerReset)
+	mux.HandleFunc("POST /reset", apiCfg.handlerReset)
 	
 	// ListenAndServe() blocks the main function until the server shuts down
 	s.ListenAndServe()
