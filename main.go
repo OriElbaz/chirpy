@@ -32,9 +32,9 @@ func main(){
 
 	mux.HandleFunc("GET /api/healthz", apiCfg.handlerHealthz)
 
-	mux.HandleFunc("GET /api/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 
-	mux.HandleFunc("POST /api/reset", apiCfg.handlerReset)
+	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	
 	// ListenAndServe() blocks the main function until the server shuts down
 	s.ListenAndServe()
