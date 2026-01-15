@@ -30,11 +30,11 @@ func main(){
 
 	mux.Handle("/app/assets/", wrappedHandler)
 
-	mux.HandleFunc("GET /healthz", apiCfg.handlerHealthz)
+	mux.HandleFunc("GET /api/healthz", apiCfg.handlerHealthz)
 
-	mux.HandleFunc("GET /metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("GET /api/metrics", apiCfg.handlerMetrics)
 
-	mux.HandleFunc("POST /reset", apiCfg.handlerReset)
+	mux.HandleFunc("POST /api/reset", apiCfg.handlerReset)
 	
 	// ListenAndServe() blocks the main function until the server shuts down
 	s.ListenAndServe()
