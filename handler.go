@@ -291,7 +291,16 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r * http.Request) {
 		Email: user.Email,
 		Token: jwt,
 		RefreshToken: rToken,
-		
+	}
+	
+	tokenParams := database.MakeTokenParams{
+		Token: rToken,
+		UserID: user.ID,
+	}
+
+	if _, err = cfg.db.MakeToken(r.Context(), tokenParams); err != nil {
+		log.Printf("ERROR making refresh token in db: %v", err)
+		return
 	}
 
 	data, err := json.Marshal(output)
