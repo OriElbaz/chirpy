@@ -71,7 +71,7 @@ func (cfg *apiConfig) handlerHealthz(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	var params parameters
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		log.Printf("ERROR decoding requests: %v", err)
