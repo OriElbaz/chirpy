@@ -18,6 +18,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db *database.Queries
 	platform string
+	secretKey string
 }
 
 
@@ -35,6 +36,7 @@ func main(){
 	apiCfg := &apiConfig{
 		db: dbQueries,
 		platform: os.Getenv("PLATFORM"),
+		secretKey: os.Getenv("SECRET_KEY"),
 	}
 
 	fileServerHandler := http.FileServer(http.Dir("."))
