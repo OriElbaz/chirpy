@@ -64,6 +64,8 @@ func main(){
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
 
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
+
+	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 	
 	// ListenAndServe() blocks the main function until the server shuts down
 	s.ListenAndServe()

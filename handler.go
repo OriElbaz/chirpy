@@ -233,6 +233,54 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	w.Write(data)
 }
 
+
+func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r * http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	type request struct{
+		Password 	string `json:"password"`
+		Email		string `json:"email"`
+	}
+
+	var req request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("ERROR decoding request %v", err)
+		return
+	}
+
+	user, err := cfg.db.GetUserByEmail(r.Context(), req.Email)
+	if err != nil {
+		log.Printf("ERROR getting user via email: %v", err)
+		return
+	}
+
+	correctPass, err := auth.CheckPasswordHash(req.Password, user.HashedPasswords)
+	if err != nil {
+		log.Printf("ERROR checking password hash: %v", err)
+		return
+	}
+
+	if !correctPass {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	output := User{
+		ID: user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email: user.Email,
+	}
+
+	data, err := json.Marshal(output)
+	if err != nil {
+		log.Printf("ERROR marshalling output: %v", err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 /***** HELPER *****/
 func badWordReplacement(p parameters) string {
 	split := strings.Fields(p.Body)
