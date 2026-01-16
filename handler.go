@@ -8,11 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/OriElbaz/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
 type parameters struct {
 	Body string `json:"body"`
+	UserID uuid.NullUUID `json:"user_id"`
 }
 
 
@@ -21,6 +23,15 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+}
+
+
+type Chirp struct {
+	ID        	uuid.UUID `json:"id"`
+	CreatedAt 	time.Time `json:"created_at"`
+	UpdatedAt 	time.Time `json:"updated_at"`
+	Body     	string    `json:"body"`
+	UserID      uuid.UUID `json:"user_id"`
 }
 
 
@@ -88,9 +99,27 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	}
 
 	outputBody := badWordReplacement(params)
-	responseBody := map[string]string{"cleaned_body":outputBody}
-	data, _ := json.Marshal(responseBody)
-	w.WriteHeader(http.StatusOK)
+	resParams := database.CreateChirpParams{
+		Body: outputBody,
+		UserID: params.UserID,
+	}
+	c, err := cfg.db.CreateChirp(r.Context(), resParams)
+	if err != nil {
+		log.Printf("ERROR creating chirp: %v", err)
+	}
+
+	chirp := Chirp{
+		ID: c.ID,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+		Body: c.Body,
+		UserID: c.UserID.UUID,
+
+	}
+
+
+	data, _ := json.Marshal(chirp)
+	w.WriteHeader(http.StatusCreated)
 	w.Write(data)
 }
 
