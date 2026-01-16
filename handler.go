@@ -15,8 +15,9 @@ import (
 )
 
 type parameters struct {
-	Body string `json:"body"`
-	UserID uuid.NullUUID `json:"user_id"`
+	Body 		string 			`json:"body"`
+	UserID 		uuid.NullUUID 	`json:"user_id"`
+	Token     	string    		`json:"token"`
 }
 
 
@@ -101,6 +102,12 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 
+	userid, valid, _ := validateToken(cfg, r);
+	if !valid {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}	
+
 	if len(params.Body) > 140 {
 		responseBody := map[string]string{"error":"Chirp is too long"}
 		data, _ := json.Marshal(responseBody)
@@ -112,8 +119,9 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	outputBody := badWordReplacement(params)
 	resParams := database.CreateChirpParams{
 		Body: outputBody,
-		UserID: params.UserID,
+		UserID: userid,
 	}
+
 	c, err := cfg.db.CreateChirp(r.Context(), resParams)
 	if err != nil {
 		log.Printf("ERROR creating chirp: %v", err)
@@ -127,7 +135,6 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		UserID: c.UserID,
 
 	}
-
 
 	data, _ := json.Marshal(chirp)
 	w.WriteHeader(http.StatusCreated)
@@ -201,11 +208,6 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
-	type request struct {
-		Email string `json:"email"`
-		Password string `json:"password"`
-	}
-
 	var req request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("ERROR decoding request: %v" , err)
@@ -322,4 +324,22 @@ func makeJWT(cfg *apiConfig, r request, user database.User) (string, error) {
 	}
 
 	return jwt, nil
+}
+
+func validateToken(cfg *apiConfig, r *http.Request) (uuid.NullUUID, bool, error) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		return uuid.NullUUID{}, false, fmt.Errorf("get brearer token: %w", err)
+	}
+
+	id, valid, err := auth.ValidateJWT(token, cfg.secretKey)
+	if err != nil {
+		return uuid.NullUUID{}, false, fmt.Errorf("validate token: %w", err)
+	}
+
+	if !valid {
+		return uuid.NullUUID{}, false, nil
+	}
+
+	return id, true, nil
 }
