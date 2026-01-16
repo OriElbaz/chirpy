@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/OriElbaz/chirpy/internal/database"
 	"github.com/OriElbaz/chirpy/internal/auth"
+	"github.com/OriElbaz/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
@@ -24,7 +25,15 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	Token     string    `json:"token"`
 }
+
+
+type request struct{
+		Password 	string `json:"password"`
+		Email		string `json:"email"`
+		Expiration	string `json:"expires_in_seconds"`
+	}
 
 
 type Chirp struct {
@@ -236,12 +245,6 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r * http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
-	type request struct{
-		Password 	string `json:"password"`
-		Email		string `json:"email"`
-	}
-
 	var req request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("ERROR decoding request %v", err)
@@ -265,11 +268,20 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r * http.Request) {
 		return
 	}
 
+	
+	jwt, err := makeJWT(cfg, req, user)
+	if err != nil {
+		fmt.Print(err)
+		return
+	}
+
 	output := User{
 		ID: user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
+		Token: jwt,
+		
 	}
 
 	data, err := json.Marshal(output)
@@ -292,4 +304,22 @@ func badWordReplacement(p parameters) string {
 	}
 
 	return strings.Join(split, " ")
+}
+
+func makeJWT(cfg *apiConfig, r request, user database.User) (string, error) {
+	var expirationLength string
+	expAsInt, _ := strconv.Atoi(r.Expiration)
+	if r.Expiration == "" || expAsInt > 3600{
+		val := 3600
+		expirationLength = fmt.Sprintf("%ds", val)
+	} else {
+		expirationLength = fmt.Sprintf("%ds", expAsInt)
+	}
+	expiration, _ := time.ParseDuration(expirationLength)
+	jwt, err := auth.MakeJWT(user.ID, cfg.secretKey, expiration)
+	if err != nil {
+		return "", fmt.Errorf("Error making jwt %v", err)
+	}
+
+	return jwt, nil
 }
