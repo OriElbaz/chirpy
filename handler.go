@@ -124,7 +124,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 }
 
 
-func (cfg *apiConfig) handlerAllChirps(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
 	c, err := cfg.db.GetAllChirps(r.Context())
 	if err != nil {
 		log.Printf("ERROR getting all chirps: %v", err)
@@ -148,6 +148,40 @@ func (cfg *apiConfig) handlerAllChirps(w http.ResponseWriter, r *http.Request) {
 	data, err := json.Marshal(chirps)
 	if err != nil {
 		log.Printf("ERROR marshalling chirps: %v", err)
+		return
+	}
+	w.Write(data)
+
+}
+
+
+func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	chirpID, err := uuid.Parse(r.PathValue("chirpID"))
+	if err != nil {
+		log.Printf("ERROR parsing parameter to uuid: %v", err)
+		return
+	}
+	chirp, err := cfg.db.GetChirpWithID(r.Context(), chirpID)
+	if err != nil {
+		log.Printf("ERROR getting chirp with id: %v", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	
+	w.WriteHeader(http.StatusOK)
+	output := Chirp{
+		ID: chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body: chirp.Body,
+		UserID: chirp.UserID,
+	}
+	data, err := json.Marshal(output)
+	if err != nil {
+		log.Printf("ERROR marshalling chirp: %v", err)
 		return
 	}
 	w.Write(data)
