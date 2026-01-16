@@ -319,29 +319,77 @@ func (cfg *apiConfig) handlerRefreshAPI(w http.ResponseWriter, r * http.Request)
 	refreshToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		log.Printf("ERROR get bearer token: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	tokenFromDB, err := cfg.db.GetToken(r.Context(), refreshToken)
 	if  err != nil {
+		log.Printf("ERROR get token: %v", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return 
 	}
+	
+	if tokenFromDB.RevokedAt.Valid {
+		log.Printf("revoked token")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if time.Now().After(tokenFromDB.ExpiresAt) {
+		log.Printf("expired token: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	
+
 	time, _ := time.ParseDuration("3600s")
 	accessToken, err := auth.MakeJWT(tokenFromDB.UserID, cfg.secretKey, time)
 	if err != nil {
 		log.Printf("ERROR making JWT: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	
 	data, err := json.Marshal(map[string]string{"token":accessToken})
 	if err != nil {
 		log.Printf("ERROR marshalling token: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
+
+	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 
+}
+
+
+func (cfg *apiConfig) handlerRevokeRefreshToken(w http.ResponseWriter, r * http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("ERROR get bearer token: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	refreshToken, err := cfg.db.GetToken(r.Context(), token)
+	if err != nil {
+		log.Printf("ERROR getting token from db: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if _, err := cfg.db.RevokeToken(r.Context(), refreshToken.UserID); err != nil {
+		log.Printf("ERROR revoking token: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 

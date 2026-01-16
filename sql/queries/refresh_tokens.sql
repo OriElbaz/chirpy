@@ -6,3 +6,9 @@ RETURNING *;
 -- name: GetToken :one
 SELECT * FROM refresh_tokens
 WHERE token = $1;
+
+-- name: RevokeToken :one
+UPDATE refresh_tokens
+SET revoked_at = NOW(), updated_at = NOW()
+WHERE refresh_tokens.user_id = $1
+RETURNING *;

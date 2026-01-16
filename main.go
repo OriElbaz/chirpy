@@ -70,6 +70,8 @@ func main(){
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefreshAPI)
+
+	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevokeRefreshToken)
 	
 	// ListenAndServe() blocks the main function until the server shuts down
 	s.ListenAndServe()
