@@ -31,7 +31,7 @@ type Chirp struct {
 	CreatedAt 	time.Time `json:"created_at"`
 	UpdatedAt 	time.Time `json:"updated_at"`
 	Body     	string    `json:"body"`
-	UserID      uuid.UUID `json:"user_id"`
+	UserID      uuid.NullUUID `json:"user_id"`
 }
 
 
@@ -113,7 +113,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,
 		Body: c.Body,
-		UserID: c.UserID.UUID,
+		UserID: c.UserID,
 
 	}
 
@@ -121,6 +121,37 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	data, _ := json.Marshal(chirp)
 	w.WriteHeader(http.StatusCreated)
 	w.Write(data)
+}
+
+
+func (cfg *apiConfig) handlerAllChirps(w http.ResponseWriter, r *http.Request) {
+	c, err := cfg.db.GetAllChirps(r.Context())
+	if err != nil {
+		log.Printf("ERROR getting all chirps: %v", err)
+		return
+	}
+
+	var chirps []Chirp
+	for _, chirp := range c {
+		new := Chirp{
+			ID: chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body: chirp.Body,
+			UserID: chirp.UserID,
+		}
+		chirps = append(chirps, new)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	data, err := json.Marshal(chirps)
+	if err != nil {
+		log.Printf("ERROR marshalling chirps: %v", err)
+		return
+	}
+	w.Write(data)
+
 }
 
 
