@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +12,8 @@ import (
 	"github.com/OriElbaz/chirpy/internal/database"
 	"github.com/google/uuid"
 )
+
+const HOUR = "3600s"
 
 type parameters struct {
 	Body 		string 			`json:"body"`
@@ -27,13 +28,13 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
 	Token     string    `json:"token"`
+	RefreshToken     string    `json:"refresh_token"`
 }
 
 
 type request struct{
 		Password 	string `json:"password"`
 		Email		string `json:"email"`
-		Expiration	string `json:"expires_in_seconds"`
 	}
 
 
@@ -271,9 +272,15 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r * http.Request) {
 	}
 
 	
-	jwt, err := makeJWT(cfg, req, user)
+	jwt, err := makeJWT(cfg, user)
 	if err != nil {
 		fmt.Print(err)
+		return
+	}
+
+	rToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		log.Printf("ERROR making refresh token: %v", err)
 		return
 	}
 
@@ -283,6 +290,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r * http.Request) {
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
 		Token: jwt,
+		RefreshToken: rToken,
 		
 	}
 
@@ -308,17 +316,13 @@ func badWordReplacement(p parameters) string {
 	return strings.Join(split, " ")
 }
 
-func makeJWT(cfg *apiConfig, r request, user database.User) (string, error) {
-	var expirationLength string
-	expAsInt, _ := strconv.Atoi(r.Expiration)
-	if r.Expiration == "" || expAsInt > 3600{
-		val := 3600
-		expirationLength = fmt.Sprintf("%ds", val)
-	} else {
-		expirationLength = fmt.Sprintf("%ds", expAsInt)
+func makeJWT(cfg *apiConfig, user database.User) (string, error) {
+	exp, err := time.ParseDuration(HOUR)
+	if err != nil {
+		return "", fmt.Errorf("parsing duration %w", err)
 	}
-	expiration, _ := time.ParseDuration(expirationLength)
-	jwt, err := auth.MakeJWT(user.ID, cfg.secretKey, expiration)
+
+	jwt, err := auth.MakeJWT(user.ID, cfg.secretKey, exp)
 	if err != nil {
 		return "", fmt.Errorf("Error making jwt %v", err)
 	}
@@ -343,3 +347,4 @@ func validateToken(cfg *apiConfig, r *http.Request) (uuid.NullUUID, bool, error)
 
 	return id, true, nil
 }
+
