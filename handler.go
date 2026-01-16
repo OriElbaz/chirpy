@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/OriElbaz/chirpy/internal/database"
+	"github.com/OriElbaz/chirpy/internal/auth"
 	"github.com/google/uuid"
 )
 
@@ -193,6 +194,7 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type request struct {
 		Email string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	var req request
@@ -200,8 +202,13 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		log.Printf("ERROR decoding request: %v" , err)
 		return
 	}
+
+	params := database.CreateUserParams{
+		Email: req.Email,
+		HashedPasswords: auth.HashPassword(req.Password),
+	}
 	
-	user, err := cfg.db.CreateUser(r.Context(), req.Email)
+	user, err := cfg.db.CreateUser(r.Context(), params)
 	if err != nil {
 		log.Printf("ERROR creating user in db: %v", err)
 		return

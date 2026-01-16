@@ -21,7 +21,8 @@ POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-    "email": "orielbaz1@gmail.com"
+    "email": "orielbaz1@gmail.com",
+    "password": "poop"
 }
 
 ###
