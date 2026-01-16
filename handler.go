@@ -292,7 +292,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r * http.Request) {
 		Token: jwt,
 		RefreshToken: rToken,
 	}
-	
+
 	tokenParams := database.MakeTokenParams{
 		Token: rToken,
 		UserID: user.ID,
@@ -311,6 +311,39 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r * http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
+
+
+func (cfg *apiConfig) handlerRefreshAPI(w http.ResponseWriter, r * http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	refreshToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("ERROR get bearer token: %v", err)
+		return
+	}
+
+	tokenFromDB, err := cfg.db.GetToken(r.Context(), refreshToken)
+	if  err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return 
+	}
+	time, _ := time.ParseDuration("3600s")
+	accessToken, err := auth.MakeJWT(tokenFromDB.UserID, cfg.secretKey, time)
+	if err != nil {
+		log.Printf("ERROR making JWT: %v", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	data, err := json.Marshal(map[string]string{"token":accessToken})
+	if err != nil {
+		log.Printf("ERROR marshalling token: %v", err)
+		return
+	}
+	w.Write(data)
+
+}
+
 
 /***** HELPER *****/
 func badWordReplacement(p parameters) string {
